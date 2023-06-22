@@ -27,7 +27,7 @@ var yamlString = `---
 func TestInjection(t *testing.T) {
 	var selector = "data-gig-selector"
 	var value = "config"
-	jsonString, err := yaml2json(yamlString)
+	jsonString, err := yaml2json(yamlString, "")
 	if err != nil {
 		t.Errorf("failed to convert yaml to json: %v", err)
 	}

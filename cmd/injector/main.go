@@ -3,11 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	json "github.com/json-iterator/go"
-	yaml "gopkg.in/yaml.v2"
 	"os"
 	"strings"
+
+	"github.com/PuerkitoBio/goquery"
+	yaml "sigs.k8s.io/yaml"
 )
 
 var (
@@ -16,18 +16,24 @@ var (
 	date    = "unknown"
 )
 
-func yaml2json(yamlString string) (string, error) {
+func yaml2json(yamlString string, path string) (string, error) {
 	var data interface{}
 	err := yaml.Unmarshal([]byte(yamlString), &data)
 	if err != nil {
 		return "", err
 	}
-	//print data structure
-	jsonString, err := json.Marshal(data)
+
+	subset := data
+	for _, p := range strings.Split(path, ".") {
+		subset, _ = subset.(map[string]interface{})[p]
+	}
+
+	jsonBytes, err := yaml.Marshal(subset)
 	if err != nil {
 		return "", err
 	}
-	return string(jsonString), nil
+
+	return string(jsonBytes), nil
 }
 
 func insertJSON(htmlString string, jsonString string, selector string, value string) (string, error) {
@@ -49,6 +55,7 @@ func main() {
 	versionFlag := flag.Bool("version", false, "print version and exit")
 	yamlFileFlag := flag.String("yaml", "", "path to yaml file")
 	htmlFileFlag := flag.String("html", "", "path to html file")
+	yamlPathFlag := flag.String("yamlpath", "", "yaml path to inject")
 
 	configAttrFlag := flag.String("config-attr", "data-gig-selector", "attribute name of config block")
 	configAttrValueFlag := flag.String("config-attr-value", "config", "attribute value of config block")
@@ -77,13 +84,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	//read yaml file
 	yamlFile, err := os.ReadFile(*yamlFileFlag)
 	if err != nil {
 		fmt.Println("yaml file read error:", err)
 		os.Exit(1)
 	}
-	jsonString, err := yaml2json(string(yamlFile))
+	jsonString, err := yaml2json(string(yamlFile), *yamlPathFlag)
 	if err != nil {
 		fmt.Println("yaml to json error:", err)
 		os.Exit(1)
@@ -101,5 +107,4 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Println(indexString)
-
 }
